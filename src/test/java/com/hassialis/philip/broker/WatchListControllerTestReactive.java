@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hassialis.philip.broker.account.WatchListController;
+import com.hassialis.philip.broker.account.WatchListControllerReactive;
 import com.hassialis.philip.broker.model.Symbol;
 import com.hassialis.philip.broker.model.WatchList;
 import com.hassialis.philip.broker.store.InMemoryAccountStore;
@@ -27,18 +27,19 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.runtime.EmbeddedApplication;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import io.reactivex.Single;
 
 @MicronautTest
-public class WatchListControllerTest {
+public class WatchListControllerTestReactive {
 
-  private static final Logger LOG = LoggerFactory.getLogger(WatchListController.class);
-  private static final UUID TEST_ACCOUNT_ID = WatchListController.ACCOUNT_ID;
+  private static final Logger LOG = LoggerFactory.getLogger(WatchListControllerReactive.class);
+  private static final UUID TEST_ACCOUNT_ID = WatchListControllerReactive.ACCOUNT_ID;
 
   @Inject
   EmbeddedApplication<?> application;
 
   @Inject
-  @Client("/account/watchlist")
+  @Client("/account/watchlist-reactive")
   RxHttpClient client;
 
   @Inject
@@ -46,9 +47,9 @@ public class WatchListControllerTest {
 
   @Test
   void returnsEmptyWatchListForAccount() {
-    final WatchList result = client.toBlocking().retrieve("/", WatchList.class);
+    final Single<WatchList> result = client.retrieve(HttpRequest.GET("/"), WatchList.class).singleOrError();
     LOG.debug("Result {}", result);
-    assertTrue(result.getSymbols().isEmpty());
+    assertTrue(result.blockingGet().getSymbols().isEmpty());
     assertTrue(store.getWatchList(TEST_ACCOUNT_ID).getSymbols().isEmpty());
   }
 
@@ -60,7 +61,16 @@ public class WatchListControllerTest {
     final WatchList result = client.toBlocking().retrieve("/", WatchList.class);
     assertEquals(3, result.getSymbols().size());
     assertEquals(3, store.getWatchList(TEST_ACCOUNT_ID).getSymbols().size());
+  }
 
+  @Test
+  void returnsWatchListForAccountAsSingle() {
+    WatchList watchList = generateWatchList();
+    store.updateWatchList(TEST_ACCOUNT_ID, watchList);
+
+    final WatchList result = client.toBlocking().retrieve("/single", WatchList.class);
+    assertEquals(3, result.getSymbols().size());
+    assertEquals(3, store.getWatchList(TEST_ACCOUNT_ID).getSymbols().size());
   }
 
   @Test
