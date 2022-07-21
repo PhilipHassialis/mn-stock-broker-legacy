@@ -8,9 +8,14 @@ import com.hassialis.philip.broker.store.InMemoryStore;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Controller("/quotes")
 public class QuotesController {
@@ -21,6 +26,10 @@ public class QuotesController {
     this.store = store;
   }
 
+  @Operation(summary = "Returns a quote for a given symbol")
+  @ApiResponse(content = @Content(mediaType = MediaType.APPLICATION_JSON))
+  @ApiResponse(responseCode = "400", description = "Invalid symbol specified")
+  @Tag(name = "quotes")
   @Get("/{symbol}")
   public HttpResponse getQuote(@PathVariable String symbol) {
     final Optional<Quote> maybeQuote = store.fetchQuote(symbol);
